@@ -17,9 +17,10 @@
         }
     ],
     "require": {
-        "php": ">=5.3.3",
+        "php": ">=5.5",
         "pimple/pimple": "1.*@dev",
-        "doctrine/orm": "~2.3"
+        "doctrine/orm": "~2.3",
+        "doctrine/cache": "~1.6"
     },
     "require-dev": {
         "cilex/cilex": "1.*@dev",

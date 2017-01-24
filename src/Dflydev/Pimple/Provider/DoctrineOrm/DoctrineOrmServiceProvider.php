@@ -12,6 +12,7 @@
 namespace Dflydev\Pimple\Provider\DoctrineOrm;
 
 use Doctrine\Common\Cache\ApcCache;
+use Doctrine\Common\Cache\ApcuCache;
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\CacheProvider;
 use Doctrine\Common\Cache\FilesystemCache;
@@ -313,6 +314,10 @@ class DoctrineOrmServiceProvider
             return new ApcCache;
         });
 
+        $app['orm.cache.factory.apcu'] = $app->protect(function() {
+            return new ApcuCache;
+        });
+
         $app['orm.cache.factory.xcache'] = $app->protect(function() {
             return new XcacheCache;
         });
@@ -335,6 +340,8 @@ class DoctrineOrmServiceProvider
                     return $app['orm.cache.factory.array']();
                 case 'apc':
                     return $app['orm.cache.factory.apc']();
+                case 'apcu':
+                    return $app['orm.cache.factory.apcu']();
                 case 'xcache':
                     return $app['orm.cache.factory.xcache']();
                 case 'memcache':
