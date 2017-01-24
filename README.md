@@ -8,7 +8,7 @@ Features
 --------
 
  * Leverages the core [Doctrine Service Provider][1] for either
-   Silex.
+   Silex or Cilex.
  * Default Entity Manager can be bound to any database connection
  * Multiple Entity Managers can be defined
  * Mechanism for allowing Service Providers to register their own
@@ -19,18 +19,28 @@ Requirements
 ------------
 
  * PHP 5.3+
- * Pimple ~2.1
  * Doctrine ~2.3
 
 Currently requires both **dbs** and **dbs.event_manager** services in
 order to work. These can be provided by a Doctrine Service Provider
-like the [Silex][1] one. If you can or want to fake it, go for it. :)
+like the [Silex][1] or [Cilex][8] service providers. If you can or
+want to fake it, go for it. :)
+
+
+Optional Dependencies
+---------------------
+
+### PSR-0 Resource Locator Service Provider
+
+An implementation of [dflydev/psr0-resource-locator-service-provider][6]
+is required if using namespaceish resource mapping. See documentation
+for **orm.generate_psr0_mapping** for more information.
 
  
 Installation
 ------------
  
-Through [Composer](http://getcomposer.org) as [dflydev/doctrine-orm-service-provider][6].
+Through [Composer](http://getcomposer.org) as [dflydev/doctrine-orm-service-provider][7].
 
 
 Usage
@@ -56,86 +66,132 @@ $em = $app['orm.em'];
 ```php
 <?php
 
-use Dflydev\Provider\DoctrineOrm\DoctrineOrmServiceProvider;
-use Pimple\Container;
+use Dflydev\Pimple\Provider\DoctrineOrm\DoctrineOrmServiceProvider;
 
-$container = new Container;
+$container = new \Pimple;
 
-$container['db.options'] = array(
-    'driver' => 'pdo_sqlite',
-    'path' => '/path/to/sqlite.db',
+$container["db.options"] = array(
+    "driver" => "pdo_sqlite",
+    "path" => "/path/to/sqlite.db",
 );
 
 // ensure that $container['dbs'] and $container['dbs.event_manager']
 // are available, most likely by way of a core service provider.
 
-$container->register(new DoctrineOrmServiceProvider, array(
-    'orm.proxies_dir' => '/path/to/proxies',
-    'orm.em.options' => array(
-        'mappings' => array(
-            // Using actual filesystem paths
-            array(
-                'type' => 'annotation',
-                'namespace' => 'Foo\Entities',
-                'path' => __DIR__.'/src/Foo/Entities',
-            ),
-            array(
-                'type' => 'xml',
-                'namespace' => 'Bat\Entities',
-                'path' => __DIR__.'/src/Bat/Resources/mappings',
-            ),
-            // XML/YAML driver (Symfony2 style)
-            // Mapping files can be named like Foo.orm.yml
-            // instead of Baz.Entities.Foo.dcm.yml
-            array(
-                'type' => 'simple_yml',
-                'namespace' => 'Baz\Entities',
-                'path' => __DIR__.'/src/Bat/Resources/config/doctrine',
-            ),
+$container["orm.proxies_dir"] = "/path/to/proxies";
+$container["orm.em.options"] = array(
+    "mappings" => array(
+        // Using actual filesystem paths
+        array(
+            "type" => "annotation",
+            "namespace" => "Foo\Entities",
+            "path" => __DIR__."/src/Foo/Entities",
+        ),
+        array(
+            "type" => "xml",
+            "namespace" => "Bat\Entities",
+            "path" => __DIR__."/src/Bat/Resources/mappings",
+        ),
+        // Using PSR-0 namespaceish embedded resources
+        // (requires registering a PSR-0 Resource Locator
+        // Service Provider)
+        array(
+            "type" => "annotation",
+            "namespace" => "Baz\Entities",
+            "resources_namespace" => "Baz\Entities",
+        ),
+        array(
+            "type" => "xml",
+            "namespace" => "Bar\Entities",
+            "resources_namespace" => "Bar\Resources\mappings",
         ),
     ),
-));
+);
+
+$doctrineOrmServiceProvider = new DoctrineOrmServiceProvider;
+$doctrineormServiceProvider->register($container);
 ```
 
 ### Silex
 
-Version 2.x of this service provider is compatible with version 2.x of Silex and version 1.x of this service provider is compatible with version 1.x of Silex. The following is an example of version 2.x of this service provider and version 2.x of Silex.
-
 ```php
 <?php
 
-use Dflydev\Provider\DoctrineOrm\DoctrineOrmServiceProvider;
+use Dflydev\Silex\Provider\DoctrineOrm\DoctrineOrmServiceProvider;
 use Silex\Application;
 use Silex\Provider\DoctrineServiceProvider;
 
 $app = new Application;
 
 $app->register(new DoctrineServiceProvider, array(
-    'db.options' => array(
-        'driver' => 'pdo_sqlite',
-        'path' => '/path/to/sqlite.db',
+    "db.options" => array(
+        "driver" => "pdo_sqlite",
+        "path" => "/path/to/sqlite.db",
     ),
 ));
 
 $app->register(new DoctrineOrmServiceProvider, array(
-    'orm.proxies_dir' => '/path/to/proxies',
-    'orm.em.options' => array(
-        'mappings' => array(
+    "orm.proxies_dir" => "/path/to/proxies",
+    "orm.em.options" => array(
+        "mappings" => array(
             // Using actual filesystem paths
             array(
-                'type' => 'annotation',
-                'namespace' => 'Foo\Entities',
-                'path' => __DIR__.'/src/Foo/Entities',
+                "type" => "annotation",
+                "namespace" => "Foo\Entities",
+                "path" => __DIR__."/src/Foo/Entities",
             ),
             array(
-                'type' => 'xml',
-                'namespace' => 'Bat\Entities',
-                'path' => __DIR__.'/src/Bat/Resources/mappings',
+                "type" => "xml",
+                "namespace" => "Bat\Entities",
+                "path" => __DIR__."/src/Bat/Resources/mappings",
+            ),
+            // As of 1.1, you can also use the simplified
+            // XML/YAML driver (Symfony2 style)
+            // Mapping files can be named like Foo.orm.yml
+            // instead of Baz.Entities.Foo.dcm.yml
+            array(
+                "type" => "simple_yml",
+                "namespace" => "Baz\Entities",
+                "path" => __DIR__."/src/Bat/Resources/config/doctrine",
+            ),
+            // Using PSR-0 namespaceish embedded resources
+            // (requires registering a PSR-0 Resource Locator
+            // Service Provider)
+            array(
+                "type" => "annotation",
+                "namespace" => "Baz\Entities",
+                "resources_namespace" => "Baz\Entities",
+            ),
+            array(
+                "type" => "xml",
+                "namespace" => "Bar\Entities",
+                "resources_namespace" => "Bar\Resources\mappings",
             ),
         ),
     ),
 ));
 ```
+
+### Cilex
+
+```php
+<?php
+
+use Dflydev\Cilex\Provider\DoctrineOrm\DoctrineOrmServiceProvider;
+use Cilex\Application;
+use Cilex\Provider\DoctrineServiceProvider;
+
+$app = new Application('My Application');
+
+$app->register(new DoctrineServiceProvider, array(
+    /** same as the Silex example **/
+));
+
+$app->register(new DoctrineOrmServiceProvider, array(
+    /** same as the Silex example **/
+));
+```
+
 
 Configuration
 -------------
@@ -154,10 +210,10 @@ Configuration
 
      Each mapping definition should be an array with the following
      options:
-     * **type**: Mapping driver type, one of `annotation`, `xml`, `yml`, `simple_xml`, `simple_yml` or `php`.
+     * **type**: Mapping driver type, one of `annotation`, `xml`, `yml` or `php`.
      * **namespace**: Namespace in which the entities reside.
-     
-     *New: the `simple_xml` and `simple_yml` driver types were added in v1.1 and provide support for the [simplified XML driver][8] and [simplified YAML driver][9] of Doctrine.*
+
+     *New: the `simple_xml` and `simple_yml` driver types were added in v1.1 and provide support for the [simplified XML driver][10] and [simplified YAML driver][11] of Doctrine.*
 
      Additionally, each mapping definition should contain one of the
      following options:
@@ -263,6 +319,29 @@ Configuration
 
    This code should be able to be used inside of a 3rd party service provider
    safely, whether the user has defined `3rdparty.provider.em` or not.
+ * **orm.generate_psr0_mapping**:
+   Leverages [dflydev/psr0-resource-locator-service-provider][6] to process
+   a map of namespaceish resource directories to their mapped entities.
+
+   Example usage:
+   ```php
+   <?php
+   $app['orm.ems.config'] = $app->share($app->extend('orm.ems.config', function ($config, $app) {
+       $mapping = $app['orm.generate_psr0_mapping'](array(
+           'Foo\Resources\mappings' => 'Foo\Entities',
+           'Bar\Resources\mappings' => 'Bar\Entities',
+       ));
+
+       $chain = $app['orm.mapping_driver_chain.locator']();
+
+       foreach ($mapping as $directory => $namespace) {
+           $driver = new XmlDriver($directory);
+           $chain->addDriver($driver, $namespace);
+       }
+
+       return $config;
+   }));
+   ```
  * **orm.strategy**:
    * **naming**: Naming strategy, instance `Doctrine\ORM\Mapping\NamingStrategy`.
    * **quote**: Quote strategy, instance `Doctrine\ORM\Mapping\QuoteStrategy`.
@@ -301,9 +380,8 @@ $loader = require __DIR__ . '/../vendor/autoload.php';
 
 ### Why is there no manager registry implementation?
 
-There is allready a thirdparty `ManagerRegistry` implementation at [saxulum-doctrine-orm-manager-registry-provider][7].
+There is allready a thirdparty `ManagerRegistry` implementation at [saxulum-doctrine-orm-manager-registry-provider][9].
 It support the `entity` type known of the form component, adds the `UniqueEntity` validator and a command line integration.
-
 
 License
 -------
@@ -315,7 +393,7 @@ Community
 ---------
 
 If you have questions or want to help out, join us in the
-[#dflydev][dflydev] or [#silex-php][silex-php] channels on
+[#dflydev][#dflydev] or [#silex-php][#silex-php] channels on
 irc.freenode.net.
 
 
@@ -334,10 +412,14 @@ Some inspiration was also taken from [Doctrine Bundle][4] and
 [3]: https://github.com/docteurklein/SilexServiceProviders
 [4]: https://github.com/doctrine/DoctrineBundle
 [5]: https://github.com/symfony/symfony/tree/master/src/Symfony/Bridge/Doctrine
-[6]: https://packagist.org/packages/dflydev/doctrine-orm-service-provider
-[7]: https://github.com/saxulum/saxulum-doctrine-orm-manager-registry-provider
-[8]: http://docs.doctrine-project.org/en/latest/reference/xml-mapping.html#simplified-xml-driver
-[9]: http://docs.doctrine-project.org/en/latest/reference/yaml-mapping.html#simplified-yaml-driver
+[6]: http://github.com/dflydev/dflydev-psr0-resource-locator-service-provider
+[7]: https://packagist.org/packages/dflydev/doctrine-orm-service-provider
+[8]: https://github.com/Cilex/Cilex/blob/master/src/Cilex/Provider/DoctrineServiceProvider.php
+[9]: https://github.com/saxulum/saxulum-doctrine-orm-manager-registry-provider
+[10]: http://docs.doctrine-project.org/en/latest/reference/xml-mapping.html#simplified-xml-driver
+[11]: http://docs.doctrine-project.org/en/latest/reference/yaml-mapping.html#simplified-yaml-driver
 
-[dflydev]: irc://irc.freenode.net/#dflydev
-[silex-php]: irc://irc.freenode.net/#silex-php
+[#dflydev]: irc://irc.freenode.net/#dflydev
+[#silex-php]: irc://irc.freenode.net/#silex-php
+
+
