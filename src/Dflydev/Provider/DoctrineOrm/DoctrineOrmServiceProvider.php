@@ -367,6 +367,8 @@ class DoctrineOrmServiceProvider implements ServiceProviderInterface
                     return $container['orm.cache.factory.array']();
                 case 'apc':
                     return $container['orm.cache.factory.apc']();
+                case 'apcu':
+                    return $container['orm.cache.factory.apcu']();
                 case 'xcache':
                     return $container['orm.cache.factory.xcache']();
                 case 'memcache':
