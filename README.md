@@ -234,7 +234,7 @@ Configuration
    String or array describing default cache implementation.
  * **orm.add_mapping_driver**:
    Function providing the ability to add a mapping driver to an Entity Manager.
-
+   * Available cache implementations, one of `array`, `filesystem`, `apc`, `apcu`, `memcache`, `memcached`, `redis`, `xcache` or `couchbase`
    These params are available:
     * **$mappingDriver**:
       Mapping driver to be added,
